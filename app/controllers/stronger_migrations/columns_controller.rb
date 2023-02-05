@@ -5,23 +5,15 @@ module StrongerMigrations
     #   column: :column_x
     def index
       if valid?(params.require(:table_name), params.require(:column_name))
-        render json: { success: true }
+        render json: { status: true }
       else
-        render json: { success: false, errors: @missing_columns }
+        render json: { status: false, errors: @missing_columns }
       end
     end
 
     def valid?(table_name, column_name)
-      @all_models ||= ObjectSpace.each_object(Class).select do |c|
-        next if c == ApplicationRecord
-        next if c == ActiveRecord::Base
-        begin
-          c.respond_to?(:table_name)
-        rescue TypeError
-          false
-        end
-      end
-      selected_model = @all_models.select {|model| model.table_name == table_name }.last
+      all_models = ActiveRecord::Base.descendants
+      selected_model = all_models.find {|model| model.table_name == table_name }
       return true if selected_model.ignored_columns.include?(column_name)
 
       @missing_columns = "The model of table #{table_name} doesn't ignore the #{column_name} column yet"
